@@ -1,0 +1,16 @@
+body {
+    background-color: #eee9bd;
+    font-family: 'PT Sans', sans-serif;
+}
+
+.main {
+    border: 3px solid black;
+    color: black;
+    font-size: large;
+    font-weight: bold;
+    width: 400px;
+    height: fit-content;
+    text-align: center;
+    vertical-align: middle;
+    
+}
