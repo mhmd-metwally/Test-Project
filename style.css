@@ -3,8 +3,8 @@ body {
     font-family: 'PT Sans', sans-serif;
 }
 
-.main {
-    border: 3px solid black;
+.div {
+border: 3px solid black;
     color: black;
     font-size: large;
     font-weight: bold;
@@ -12,5 +12,9 @@ body {
     height: fit-content;
     text-align: center;
     vertical-align: middle;
+    
+}
+
+.item-a{
     
 }
