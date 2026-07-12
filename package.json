@@ -1,0 +1,23 @@
+{
+  "name": "my-medical-assistant",
+  "version": "1.0.0",
+  "description": "Private web app to import lab-result PDFs, store them in a database, and visualize/analyze your health trends over time.",
+  "type": "commonjs",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.3.0",
+    "cookie-parser": "^1.4.6",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
+    "pdfjs-dist": "^4.10.38"
+  }
+}
