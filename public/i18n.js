@@ -104,6 +104,8 @@ const I18N = {
     all_normal: 'كل النتايج ضمن المعدل الطبيعي 🎉',
     filter_abnormal: 'اعرض غير الطبيعي بس',
     filter_all: 'اعرض الكل',
+    all_label: 'الكل',
+    no_filter_results: 'مفيش تحاليل ضمن الفلتر ده.',
     no_abnormal_now: 'مفيش قيم خارج المعدل في آخر نتايجك 🎉',
     // OCR / images
     drop_here_img: 'اسحب ملف PDF أو صورة هنا، أو اضغط للاختيار',
@@ -209,6 +211,8 @@ const I18N = {
     all_normal: 'All results are within the normal range 🎉',
     filter_abnormal: 'Show abnormal only',
     filter_all: 'Show all',
+    all_label: 'All',
+    no_filter_results: 'No tests match this filter.',
     no_abnormal_now: 'No out-of-range values in your latest results 🎉',
     drop_here_img: 'Drag a PDF or image here, or click to choose',
     import_desc_img: 'Upload a PDF or image (or a scanned report) of your lab results. We’ll extract the values automatically so you can review them before saving.',

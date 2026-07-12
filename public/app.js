@@ -141,17 +141,32 @@ async function viewDashboard(view) {
   }
   const c = data.counters;
   const outOfRange = (c.high || 0) + (c.low || 0);
-  const abnormalOnly = State.abnormalOnly;
+  const filter = State.dashFilter || 'all';
 
   let cats = '';
   const catNames = Object.keys(data.categories).sort();
   for (const cat of catNames) {
-    let items = data.categories[cat];
-    if (abnormalOnly) items = items.filter((x) => x.status === 'high' || x.status === 'low');
+    const items = data.categories[cat].filter((x) => matchesFilter(x, filter));
     if (items.length === 0) continue;
     cats += `<section class="cat"><h3>${esc(cat)}</h3><div class="grid">${items.map(cardForTest).join('')}</div></section>`;
   }
-  if (abnormalOnly && cats === '') cats = `<div class="card muted">${esc(t('no_abnormal_now'))}</div>`;
+  if (cats === '') {
+    const emptyMsg = filter === 'abnormal' ? t('no_abnormal_now') : t('no_filter_results');
+    cats = `<div class="card muted">${esc(emptyMsg)}</div>`;
+  }
+
+  // Filter buttons (with counts).
+  const filters = [
+    { key: 'all', label: t('all_label'), n: c.total, tone: '' },
+    { key: 'abnormal', label: t('out_of_range'), n: outOfRange, tone: 'warn' },
+    { key: 'high', label: t('high'), n: c.high || 0, tone: 'high' },
+    { key: 'low', label: t('low'), n: c.low || 0, tone: 'low' },
+    { key: 'normal', label: t('normal'), n: c.normal || 0, tone: 'ok' },
+  ];
+  const filterBtns = filters
+    .map((f) => `<button class="filter-btn f-${f.tone} ${filter === f.key ? 'active' : ''}" data-filter="${f.key}">
+        ${esc(f.label)} <span class="fb-count">${f.n}</span></button>`)
+    .join('');
 
   view.innerHTML = `
     <div class="page-head">
@@ -164,17 +179,21 @@ async function viewDashboard(view) {
       ${stat(t('low'), c.low || 0, 'low')}
     </div>
     ${renderInsights(data.insights)}
-    <div class="dash-toolbar">
-      <button class="ghost ${abnormalOnly ? 'active' : ''}" id="filterBtn">
-        ${esc(abnormalOnly ? t('filter_all') : t('filter_abnormal'))}
-      </button>
-    </div>
+    <div class="filter-bar">${filterBtns}</div>
     ${cats}
   `;
-  $('#filterBtn').onclick = () => { State.abnormalOnly = !State.abnormalOnly; render(); };
+  view.querySelectorAll('.filter-btn').forEach((btn) => {
+    btn.onclick = () => { State.dashFilter = btn.dataset.filter; render(); };
+  });
   view.querySelectorAll('[data-test-card], .ins-chip').forEach((el) => {
     el.onclick = () => openTrend(el.dataset.key || null, el.dataset.name);
   });
+}
+
+function matchesFilter(x, f) {
+  if (f === 'all') return true;
+  if (f === 'abnormal') return x.status === 'high' || x.status === 'low';
+  return x.status === f;
 }
 
 function renderInsights(ins) {
