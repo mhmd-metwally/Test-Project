@@ -238,6 +238,16 @@ input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
 .row-excluded td { opacity: .4; text-decoration: line-through; }
 .row-excluded td:last-child { text-decoration: none; }
 
+.ocr-badge {
+  font-size: 11px; font-weight: 700; background: var(--warn); color: #fff;
+  padding: 2px 8px; border-radius: 999px; vertical-align: middle; margin-inline-start: 6px;
+}
+.ocr-warn {
+  background: rgba(224,138,30,.12); border: 1px solid rgba(224,138,30,.4);
+  color: var(--warn); padding: 10px 12px; border-radius: 10px; font-size: 13px;
+  font-weight: 600; margin: 4px 0 4px;
+}
+
 /* -------------------------------- about ------------------------------- */
 .about h3 { margin: 0 0 6px; font-size: 15px; }
 .about p { margin: 0; color: var(--text); }

@@ -377,4 +377,4 @@ function finishResult(name, value, rangeStr, unit) {
   };
 }
 
-module.exports = { parsePdf, parseText };
+module.exports = { parsePdf, parseText, extractPdfText };

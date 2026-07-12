@@ -240,12 +240,12 @@ async function viewImport(view) {
   view.innerHTML = `
     <div class="page-head">
       <h2>${esc(t('import_title'))}</h2>
-      <p>${esc(t('import_desc'))}</p>
+      <p>${esc(t('import_desc_img'))}</p>
     </div>
     <div id="dropzone" class="dropzone">
       <div class="dz-icon">⬆️</div>
-      <div>${esc(t('drop_here'))}</div>
-      <input type="file" id="fileInput" accept="application/pdf" hidden>
+      <div>${esc(t('drop_here_img'))}</div>
+      <input type="file" id="fileInput" accept="application/pdf,image/*" hidden>
     </div>
     <div id="reviewArea"></div>
   `;
@@ -263,7 +263,9 @@ async function viewImport(view) {
 
 async function handleFile(file) {
   const dz = $('#dropzone');
-  dz.innerHTML = `<div class="spinner"></div><div>${esc(t('parsing'))}</div>`;
+  const isImg = /^image\//.test(file.type) || /\.(png|jpe?g|webp|bmp|tiff?|gif|heic)$/i.test(file.name);
+  const msg = isImg ? t('parsing_ocr') : t('parsing');
+  dz.innerHTML = `<div class="spinner"></div><div>${esc(msg)}</div>`;
   try {
     const res = await api.parse(file);
     State.parsed = res;
@@ -276,12 +278,18 @@ async function handleFile(file) {
 function renderReview() {
   const p = State.parsed;
   const area = $('#reviewArea');
+  // OCR values are approximations, so they are editable; digital-PDF values
+  // are exact and stay read-only.
+  const editable = p.source === 'ocr';
   const included = p.results.filter((r) => !r.excluded).length;
-  const rowsHtml = p.results.map((r, i) => reviewRow(r, i)).join('');
+  const rowsHtml = p.results.map((r, i) => (editable ? editRow(r, i) : reviewRow(r, i))).join('');
+  const header = editable
+    ? `<th>${esc(t('col_test'))}</th><th>${esc(t('col_value'))}</th><th>${esc(t('col_unit'))}</th><th>${esc(t('col_ref_low'))}</th><th>${esc(t('col_ref_high'))}</th><th></th>`
+    : `<th>${esc(t('col_test'))}</th><th>${esc(t('col_value'))}</th><th>${esc(t('col_unit'))}</th><th>${esc(t('col_ref'))}</th><th></th>`;
   area.innerHTML = `
     <div class="card review">
-      <h3>${esc(t('review_title'))}</h3>
-      <p class="muted">${esc(t('review_readonly'))}</p>
+      <h3>${esc(t('review_title'))} ${editable ? `<span class="ocr-badge">${esc(t('ocr_badge'))}</span>` : ''}</h3>
+      ${editable ? `<div class="ocr-warn">${esc(t('ocr_warning'))}</div>` : `<p class="muted">${esc(t('review_readonly'))}</p>`}
       ${p.results.length === 0 ? `<p class="muted">${esc(t('nothing_found'))}</p>` : ''}
       <div class="meta-grid">
         <label>${esc(t('report_date'))}<input type="date" id="reportDate" value="${esc(p.reportDate || today())}"></label>
@@ -289,11 +297,8 @@ function renderReview() {
         <label>${esc(t('note'))}<input type="text" id="note" value=""></label>
       </div>
       <div class="table-wrap">
-        <table class="rev-table readonly">
-          <thead><tr>
-            <th>${esc(t('col_test'))}</th><th>${esc(t('col_value'))}</th><th>${esc(t('col_unit'))}</th>
-            <th>${esc(t('col_ref'))}</th><th></th>
-          </tr></thead>
+        <table class="rev-table ${editable ? '' : 'readonly'}">
+          <thead><tr>${header}</tr></thead>
           <tbody id="revBody">${rowsHtml}</tbody>
         </table>
       </div>
@@ -304,7 +309,7 @@ function renderReview() {
       <div id="saveMsg"></div>
     </div>
   `;
-  $('#saveReport').onclick = saveReport;
+  $('#saveReport').onclick = () => saveReport(editable);
   bindRowEvents();
 }
 
@@ -328,20 +333,55 @@ function reviewRow(r, i) {
     </tr>`;
 }
 
+// Editable row for OCR imports.
+function editRow(r, i) {
+  return `
+    <tr data-row="${i}" class="${r.excluded ? 'row-excluded' : ''}">
+      <td><input class="r-name" value="${esc(r.name || r.test_name || '')}"></td>
+      <td><input class="r-value" type="number" step="any" value="${esc(r.value)}"></td>
+      <td><input class="r-unit" value="${esc(r.unit || '')}"></td>
+      <td><input class="r-low" type="number" step="any" value="${esc(r.refLow != null ? r.refLow : '')}"></td>
+      <td><input class="r-high" type="number" step="any" value="${esc(r.refHigh != null ? r.refHigh : '')}"></td>
+      <td><button class="del-row" title="${esc(r.excluded ? t('restore') : t('exclude'))}">${r.excluded ? '↩' : '✕'}</button></td>
+    </tr>`;
+}
+
 function bindRowEvents() {
   $('#revBody').querySelectorAll('.del-row').forEach((btn) => {
     btn.onclick = () => {
       const idx = Number(btn.closest('tr').dataset.row);
       const row = State.parsed.results[idx];
+      // capture any edits before re-render so they aren't lost
+      captureEdits();
       row.excluded = !row.excluded;
       renderReview();
     };
   });
 }
 
-async function saveReport() {
+// For OCR (editable) mode: read current input values back into State.parsed.
+function captureEdits() {
+  const body = $('#revBody');
+  if (!body || State.parsed.source !== 'ocr') return;
+  body.querySelectorAll('tr').forEach((tr) => {
+    const i = Number(tr.dataset.row);
+    const r = State.parsed.results[i];
+    if (!r) return;
+    const nameEl = $('.r-name', tr);
+    if (!nameEl) return;
+    r.name = nameEl.value.trim();
+    r.value = $('.r-value', tr).value;
+    r.unit = $('.r-unit', tr).value.trim();
+    const low = $('.r-low', tr).value;
+    const high = $('.r-high', tr).value;
+    r.refLow = low === '' ? null : Number(low);
+    r.refHigh = high === '' ? null : Number(high);
+  });
+}
+
+async function saveReport(editable) {
   const p = State.parsed;
-  // Values are taken exactly as parsed (never edited); only excluded rows drop.
+  if (editable) captureEdits();
   const results = p.results
     .filter((r) => !r.excluded)
     .map((r) => ({

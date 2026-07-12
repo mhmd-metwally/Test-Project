@@ -105,6 +105,12 @@ const I18N = {
     filter_abnormal: 'اعرض غير الطبيعي بس',
     filter_all: 'اعرض الكل',
     no_abnormal_now: 'مفيش قيم خارج المعدل في آخر نتايجك 🎉',
+    // OCR / images
+    drop_here_img: 'اسحب ملف PDF أو صورة هنا، أو اضغط للاختيار',
+    import_desc_img: 'ارفع ملف PDF أو صورة (أو تقرير ممسوح ضوئيًا) لنتائج التحاليل. هنستخرج القيم تلقائيًا وتقدر تراجعها قبل الحفظ.',
+    parsing_ocr: 'بنقرا التقرير بتقنية OCR... ممكن ياخد شوية وقت.',
+    ocr_badge: 'قراءة ضوئية (OCR)',
+    ocr_warning: '⚠️ دي القيم اتقرت من صورة بتقنية OCR وممكن يكون فيها أخطاء (خصوصًا العلامة العشرية). راجعها كويس وصحّح أي رقم غلط قبل الحفظ.',
   },
 
   en: {
@@ -204,6 +210,11 @@ const I18N = {
     filter_abnormal: 'Show abnormal only',
     filter_all: 'Show all',
     no_abnormal_now: 'No out-of-range values in your latest results 🎉',
+    drop_here_img: 'Drag a PDF or image here, or click to choose',
+    import_desc_img: 'Upload a PDF or image (or a scanned report) of your lab results. We’ll extract the values automatically so you can review them before saving.',
+    parsing_ocr: 'Reading the report with OCR... this can take a little while.',
+    ocr_badge: 'Scanned (OCR)',
+    ocr_warning: '⚠️ These values were read from an image with OCR and may contain mistakes (especially the decimal point). Please review carefully and fix any wrong number before saving.',
   },
 };
 

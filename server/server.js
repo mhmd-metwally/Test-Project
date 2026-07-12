@@ -7,7 +7,8 @@ const multer = require('multer');
 
 const db = require('./db');
 const auth = require('./auth');
-const { parsePdf } = require('./pdfParser');
+const { extractPdfText, parseText } = require('./pdfParser');
+const { ocrImageBuffer, ocrPdfBuffer } = require('./ocr');
 const { buildDashboard, statusOf } = require('./analysis');
 const { getDescription } = require('./labDictionary');
 const { getSeriesForTest, listTests } = db;
@@ -69,13 +70,37 @@ app.post('/api/logout', (req, res) => {
 const api = express.Router();
 api.use(auth.requireAuth);
 
-// Upload + parse a PDF, return extracted results for review (does NOT save).
+// Upload + parse a PDF or image, return extracted results for review.
+// - Digital PDFs (with a text layer) are read directly  -> source 'pdf-text'.
+// - Images, or scanned PDFs with no text, are read via OCR -> source 'ocr'.
 api.post('/parse', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'no_file' });
+  const name = req.file.originalname || '';
+  const isImage =
+    /^image\//i.test(req.file.mimetype || '') || /\.(png|jpe?g|webp|bmp|tiff?|gif|heic)$/i.test(name);
   try {
-    const parsed = await parsePdf(req.file.buffer);
+    let text;
+    let source;
+    if (isImage) {
+      text = await ocrImageBuffer(req.file.buffer);
+      source = 'ocr';
+    } else {
+      text = await extractPdfText(req.file.buffer);
+      source = 'pdf-text';
+      // If the PDF has little/no text layer, it's likely scanned -> OCR it.
+      const probe = parseText(text);
+      if (probe.results.length === 0 || text.replace(/\s/g, '').length < 40) {
+        const ocrText = await ocrPdfBuffer(req.file.buffer);
+        if (ocrText.trim().length > text.trim().length) {
+          text = ocrText;
+          source = 'ocr';
+        }
+      }
+    }
+    const parsed = parseText(text);
     res.json({
-      filename: req.file.originalname,
+      filename: name,
+      source,
       reportDate: parsed.reportDate,
       labName: parsed.labName || '',
       results: parsed.results,

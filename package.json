@@ -12,11 +12,13 @@
     "node": ">=22.5.0"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^0.1.100",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.2.0",
-    "pdfjs-dist": "^4.10.38"
+    "pdfjs-dist": "^4.10.38",
+    "tesseract.js": "^5.1.1"
   }
 }

@@ -11,9 +11,14 @@ per-test charts. Bilingual interface (**العربية / English**) with full RT
 
 ## Features
 
-- **Import PDF lab reports** — upload a PDF and the app auto-extracts test names,
-  values, units and reference ranges. You **review and fix** everything before it
-  is saved (nothing is trusted blindly), and you can also add rows manually.
+- **Import PDF, image, or scanned reports** — upload a digital PDF, a photo/image
+  (JPG/PNG…), or a scanned PDF. Digital PDFs are read directly; images and scanned
+  PDFs are read with on-device **OCR** (Tesseract), so nothing is sent to any
+  external service. The app auto-extracts test names, values, units, and reference
+  ranges for you to review before saving.
+- **Trustworthy by source** — values from a digital PDF are locked (read-only) to
+  stay faithful to the report; OCR values (which can misread, e.g. decimals) are
+  editable so you can correct them, with a clear warning to verify them.
 - **Database storage** — every report and result is stored in a local SQLite
   database on the server.
 - **Dashboard** — your latest value for each test, grouped by category (CBC,
@@ -31,6 +36,9 @@ per-test charts. Bilingual interface (**العربية / English**) with full RT
   `node:sqlite` — no native module to compile, so `npm install` needs no
   Python/build tools on any OS
 - PDF text extraction: `pdfjs-dist` with a custom column-aware line reconstructor
+- OCR for images / scanned PDFs: `tesseract.js` (+ `@napi-rs/canvas` to rasterize
+  scanned pages) — runs entirely on the server, no external API. The English
+  language data downloads once on first use and is cached under `data/`.
 - Frontend: dependency-free vanilla JS SPA + custom SVG charts (works offline)
 - Auth: password (bcrypt) + signed session cookie (JWT)
 
