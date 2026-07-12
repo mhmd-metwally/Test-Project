@@ -5,7 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { getSetting, setSetting } = require('./db');
+const { getSetting, setSetting, DATA_DIR } = require('./db');
 
 const SESSION_TTL = process.env.SESSION_TTL || '30d';
 const COOKIE_NAME = 'mma_session';
@@ -13,7 +13,7 @@ const COOKIE_NAME = 'mma_session';
 // Resolve a JWT secret: env var wins, else a persisted random secret.
 function resolveSecret() {
   if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
-  const secretFile = path.join(__dirname, '..', 'data', '.secret');
+  const secretFile = path.join(DATA_DIR, '.secret');
   try {
     if (fs.existsSync(secretFile)) return fs.readFileSync(secretFile, 'utf8').trim();
   } catch (_) { /* ignore */ }

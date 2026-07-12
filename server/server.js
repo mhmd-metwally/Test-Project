@@ -14,6 +14,10 @@ const { getSeriesForTest, listTests } = db;
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Behind a hosting platform's HTTPS proxy (Render/Railway/Fly), trust it so
+// secure session cookies are handled correctly.
+app.set('trust proxy', 1);
+
 app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
 

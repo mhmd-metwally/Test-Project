@@ -4,7 +4,11 @@ const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+// DATA_DIR can point to a mounted persistent volume in production so the
+// SQLite database survives restarts/redeploys. Defaults to ./data locally.
+const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.join(__dirname, '..', 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 const db = new Database(path.join(DATA_DIR, 'medical.sqlite'));
@@ -175,6 +179,7 @@ function getAllResultsChrono() {
 
 module.exports = {
   db,
+  DATA_DIR,
   getSetting,
   setSetting,
   saveReport,

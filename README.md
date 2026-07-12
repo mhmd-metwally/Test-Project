@@ -57,16 +57,60 @@ extracted values, and save.
 | `JWT_SECRET`  | random  | Secret used to sign login sessions     |
 | `SESSION_TTL` | `30d`   | How long a login session stays valid   |
 
-## Accessing it from your phone
+## Deploying (access from computer + phone)
 
-The app is a normal web server, so to reach it from other devices you can:
+> **GitHub Pages will not work** for this app — it only serves static files and
+> can't run a Node server or database. Use a host that runs Node/Docker.
 
-- Run it on the same Wi-Fi and open `http://<your-computer-ip>:3000`, or
-- Deploy it to any Node host (Render, Railway, Fly.io, a small VPS, …).
+The app ships with a **Dockerfile**, so any Docker-capable host works the same
+way. The one thing to get right is a **persistent volume** for the database,
+mounted at the path in `DATA_DIR` (default `/data` in the container) — otherwise
+your data is wiped on every restart/redeploy.
 
-Because it's password-protected and stores data in its own database, only you
-can see your results. **Deploy behind HTTPS** when exposing it to the internet
-(set `NODE_ENV=production` so the session cookie is marked `Secure`).
+Set these environment variables on the host:
+
+| Variable     | Value                | Why                                   |
+| ------------ | -------------------- | ------------------------------------- |
+| `DATA_DIR`   | volume mount path    | keep the SQLite DB on the volume      |
+| `JWT_SECRET` | long random string   | stable login sessions across restarts |
+| `NODE_ENV`   | `production`         | marks the session cookie `Secure`     |
+
+`PORT` is injected by the platform automatically — no need to set it.
+
+### Railway (free volume — recommended)
+
+1. Push this repo to GitHub.
+2. On [railway.app](https://railway.app): **New Project → Deploy from GitHub repo**.
+   Railway detects the `Dockerfile` and builds it.
+3. **Add a Volume** and set its mount path to `/data`.
+4. Under **Variables**, add `DATA_DIR=/data`, `NODE_ENV=production`, and a
+   `JWT_SECRET` (any long random string).
+5. Open the generated URL, create your password, and start importing.
+
+### Render
+
+This repo includes a `render.yaml` blueprint. On [render.com](https://render.com):
+**New → Blueprint → connect this repo**. It provisions the web service plus a 1 GB
+disk at `/data` and generates `JWT_SECRET` for you.
+
+> Note: Render's persistent disk requires a **paid** plan. Without a disk the app
+> still runs but the database is not persisted — prefer Railway/Fly for a free
+> option with persistent storage.
+
+### Fly.io
+
+`fly launch` (it detects the Dockerfile), then `fly volumes create medical_data
+--size 1` and mount it at `/data` in `fly.toml`, and set the env vars above with
+`fly secrets set JWT_SECRET=... DATA_DIR=/data NODE_ENV=production`.
+
+Because it's password-protected and stores data in its own database, only you can
+see your results — and all these platforms serve it over **HTTPS** automatically.
+
+## Run locally / on your Wi-Fi
+
+`npm start` and open `http://<your-computer-ip>:3000` from your phone on the same
+network. (Locally, leave `NODE_ENV` unset so the cookie isn't marked `Secure`
+over plain HTTP.)
 
 ## Data & privacy
 

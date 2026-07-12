@@ -1,0 +1,24 @@
+# Render Blueprint for My Medical Assistant.
+# In Render: New + > Blueprint > connect this repo. Render reads this file.
+#
+# NOTE: The persistent disk below keeps your database across restarts and
+# deploys. Disks are a paid feature on Render; without one, SQLite data is lost
+# whenever the service restarts. If you want a fully free option, Railway or
+# Fly.io volumes work with the same Dockerfile — see README.
+services:
+  - type: web
+    name: my-medical-assistant
+    runtime: docker
+    plan: starter          # a paid plan is required to attach a disk
+    healthCheckPath: /api/status
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true   # Render generates a strong secret once
+      - key: DATA_DIR
+        value: /data
+      - key: NODE_ENV
+        value: production
+    disk:
+      name: medical-data
+      mountPath: /data
+      sizeGB: 1
