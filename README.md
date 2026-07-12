@@ -27,12 +27,17 @@ per-test charts. Bilingual interface (**العربية / English**) with full RT
 
 ## Tech
 
-- Backend: Node.js + Express + SQLite (`better-sqlite3`)
+- Backend: Node.js (**22.5+**) + Express + SQLite via Node's **built-in**
+  `node:sqlite` — no native module to compile, so `npm install` needs no
+  Python/build tools on any OS
 - PDF text extraction: `pdfjs-dist` with a custom column-aware line reconstructor
 - Frontend: dependency-free vanilla JS SPA + custom SVG charts (works offline)
 - Auth: password (bcrypt) + signed session cookie (JWT)
 
 ## Getting started
+
+> Requires **Node.js 22.5 or newer** (uses the built-in SQLite). Check with
+> `node --version`. Node LTS from [nodejs.org](https://nodejs.org) works.
 
 ```bash
 # 1. Install dependencies

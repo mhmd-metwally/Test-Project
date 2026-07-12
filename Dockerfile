@@ -1,11 +1,7 @@
 # ---- My Medical Assistant ----
-FROM node:20-bookworm-slim
-
-# Build tools are only needed if a prebuilt better-sqlite3 binary isn't
-# available for this platform; they let npm compile it from source as a fallback.
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 make g++ \
-  && rm -rf /var/lib/apt/lists/*
+# Node 22+ ships a built-in SQLite, so there is no native module to compile
+# and no build tools are needed.
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 

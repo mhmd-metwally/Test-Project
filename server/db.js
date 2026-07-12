@@ -2,7 +2,9 @@
 
 const path = require('path');
 const fs = require('fs');
-const Database = require('better-sqlite3');
+// Node's built-in SQLite (Node >= 22.5). Using it means no native module to
+// compile, so `npm install` needs no Python/build tools on any platform.
+const { DatabaseSync } = require('node:sqlite');
 
 // DATA_DIR can point to a mounted persistent volume in production so the
 // SQLite database survives restarts/redeploys. Defaults to ./data locally.
@@ -11,9 +13,9 @@ const DATA_DIR = process.env.DATA_DIR
   : path.join(__dirname, '..', 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-const db = new Database(path.join(DATA_DIR, 'medical.sqlite'));
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+const db = new DatabaseSync(path.join(DATA_DIR, 'medical.sqlite'));
+db.exec('PRAGMA journal_mode = WAL');
+db.exec('PRAGMA foreign_keys = ON');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS settings (
@@ -76,30 +78,39 @@ const insertResultStmt = db.prepare(`
   VALUES (@report_id, @test_key, @test_name, @category, @value, @unit, @ref_low, @ref_high, @ref_text)
 `);
 
-const saveReport = db.transaction((report, results) => {
-  const info = insertReportStmt.run({
-    report_date: report.report_date,
-    lab_name: report.lab_name || null,
-    filename: report.filename || null,
-    note: report.note || null,
-    raw_text: report.raw_text || null,
-  });
-  const reportId = info.lastInsertRowid;
-  for (const r of results) {
-    insertResultStmt.run({
-      report_id: reportId,
-      test_key: r.test_key || null,
-      test_name: r.test_name,
-      category: r.category || 'Other',
-      value: r.value,
-      unit: r.unit || null,
-      ref_low: r.ref_low === undefined ? null : r.ref_low,
-      ref_high: r.ref_high === undefined ? null : r.ref_high,
-      ref_text: r.ref_text || null,
+// Save a report and its results atomically (node:sqlite has no transaction
+// helper, so we drive BEGIN/COMMIT/ROLLBACK by hand).
+function saveReport(report, results) {
+  db.exec('BEGIN');
+  try {
+    const info = insertReportStmt.run({
+      report_date: report.report_date,
+      lab_name: report.lab_name || null,
+      filename: report.filename || null,
+      note: report.note || null,
+      raw_text: report.raw_text || null,
     });
+    const reportId = info.lastInsertRowid;
+    for (const r of results) {
+      insertResultStmt.run({
+        report_id: reportId,
+        test_key: r.test_key || null,
+        test_name: r.test_name,
+        category: r.category || 'Other',
+        value: r.value,
+        unit: r.unit || null,
+        ref_low: r.ref_low === undefined ? null : r.ref_low,
+        ref_high: r.ref_high === undefined ? null : r.ref_high,
+        ref_text: r.ref_text || null,
+      });
+    }
+    db.exec('COMMIT');
+    return reportId;
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
   }
-  return reportId;
-});
+}
 
 function listReports() {
   return db
