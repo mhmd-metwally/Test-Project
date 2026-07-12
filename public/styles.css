@@ -211,9 +211,52 @@ input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ------------------------------ insights ------------------------------ */
+.insights h3 { margin: 0 0 12px; font-size: 16px; }
+.ins-block { margin-bottom: 12px; }
+.ins-block:last-child { margin-bottom: 0; }
+.ins-title { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+.ins-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.ins-chip {
+  border: 1px solid var(--line); background: var(--bg); color: var(--text);
+  padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+}
+.ins-chip:hover { border-color: var(--accent); }
+.ins-chip.ins-high { border-color: rgba(214,69,69,.4); }
+.ins-chip.ins-low { border-color: rgba(47,111,237,.4); }
+.ins-chip.ins-improved { border-color: rgba(31,157,85,.5); color: var(--ok); }
+.ins-chip.ins-worsened { border-color: rgba(214,69,69,.5); color: var(--high); }
+.ins-danger-block .ins-chip { border-color: var(--high); color: var(--high); font-weight: 700; }
+.ins-allgood { color: var(--ok); font-weight: 700; }
+
+.dash-toolbar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+.ghost.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ----------------------------- read-only review ----------------------- */
+.rev-table.readonly td { font-size: 14px; }
+.rev-table.readonly .rv-num { font-weight: 700; font-variant-numeric: tabular-nums; }
+.row-excluded td { opacity: .4; text-decoration: line-through; }
+.row-excluded td:last-child { text-decoration: none; }
+
+/* -------------------------------- about ------------------------------- */
+.about h3 { margin: 0 0 6px; font-size: 15px; }
+.about p { margin: 0; color: var(--text); }
+.trend-head { display: flex; justify-content: space-between; margin-bottom: 14px; gap: 10px; }
+
 @media (max-width: 720px) {
   .stats { grid-template-columns: repeat(2, 1fr); }
   .meta-grid { grid-template-columns: 1fr; }
   .brand-tag { display: none; }
   .tabs { order: 3; width: 100%; }
+}
+
+/* -------------------------------- print ------------------------------- */
+@media print {
+  .topbar, .foot, .no-print, .dash-toolbar { display: none !important; }
+  body { background: #fff; color: #000; }
+  main { max-width: none; padding: 0; }
+  .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+  .chart { color-adjust: exact; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pill { border: 1px solid #999; }
+  a[href]:after { content: ''; }
 }

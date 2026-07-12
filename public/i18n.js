@@ -82,6 +82,29 @@ const I18N = {
     no_reports: 'مفيش تقارير محفوظة لسه.',
     disclaimer: 'تنبيه: ده أداة لتنظيم بياناتك فقط وليس استشارة طبية. راجع دكتورك دايمًا.',
     loading: 'جاري التحميل...',
+
+    // review (read-only)
+    detected_lab: 'اسم المعمل (تم اكتشافه)',
+    review_readonly: 'دي النتايج زي ما هي في التقرير — مش هينفع تعدّل القيم للحفاظ على دقتها. لو فيه صف مش تحليل تقدر تستبعده بس.',
+    exclude: 'استبعاد',
+    excluded: 'مُستبعَد',
+    restore: 'إرجاع',
+    col_ref: 'المعدل الطبيعي',
+    included_count: 'هيتحفظ',
+    // trend extras
+    about_test: 'نبذة عن التحليل',
+    print: '🖨️ طباعة',
+    print_report: '🖨️ طباعة',
+    // insights
+    insights_title: 'ملخص ذكي',
+    needs_attention: 'محتاج متابعة',
+    danger_alert: 'تنبيه: قيم بعيدة عن الطبيعي',
+    improved_list: 'اتحسّن 👍',
+    worsened_list: 'تراجَع',
+    all_normal: 'كل النتايج ضمن المعدل الطبيعي 🎉',
+    filter_abnormal: 'اعرض غير الطبيعي بس',
+    filter_all: 'اعرض الكل',
+    no_abnormal_now: 'مفيش قيم خارج المعدل في آخر نتايجك 🎉',
   },
 
   en: {
@@ -161,6 +184,26 @@ const I18N = {
     no_reports: 'No saved reports yet.',
     disclaimer: 'Note: This tool only organizes your data and is not medical advice. Always consult your doctor.',
     loading: 'Loading...',
+
+    detected_lab: 'Lab name (detected)',
+    review_readonly: 'These are the values exactly as printed on the report — they cannot be edited, to keep them accurate. You can only exclude a row that is not a test.',
+    exclude: 'Exclude',
+    excluded: 'Excluded',
+    restore: 'Restore',
+    col_ref: 'Reference range',
+    included_count: 'will be saved',
+    about_test: 'About this test',
+    print: '🖨️ Print',
+    print_report: '🖨️ Print',
+    insights_title: 'Smart summary',
+    needs_attention: 'Needs attention',
+    danger_alert: 'Alert: values far outside normal',
+    improved_list: 'Improved 👍',
+    worsened_list: 'Declined',
+    all_normal: 'All results are within the normal range 🎉',
+    filter_abnormal: 'Show abnormal only',
+    filter_all: 'Show all',
+    no_abnormal_now: 'No out-of-range values in your latest results 🎉',
   },
 };
 

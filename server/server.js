@@ -9,6 +9,7 @@ const db = require('./db');
 const auth = require('./auth');
 const { parsePdf } = require('./pdfParser');
 const { buildDashboard, statusOf } = require('./analysis');
+const { getDescription } = require('./labDictionary');
 const { getSeriesForTest, listTests } = db;
 
 const app = express();
@@ -76,6 +77,7 @@ api.post('/parse', upload.single('file'), async (req, res) => {
     res.json({
       filename: req.file.originalname,
       reportDate: parsed.reportDate,
+      labName: parsed.labName || '',
       results: parsed.results,
       rawText: parsed.text,
     });
@@ -150,8 +152,15 @@ api.get('/series', (req, res) => {
     status: statusOf(r.value, r.ref_low, r.ref_high),
     report_id: r.report_id,
   }));
+  const lang = req.query.lang === 'en' ? 'en' : 'ar';
   const meta = rows[0]
-    ? { test_name: rows[0].test_name, test_key: rows[0].test_key, category: rows[0].category, unit: rows[0].unit }
+    ? {
+        test_name: rows[0].test_name,
+        test_key: rows[0].test_key,
+        category: rows[0].category,
+        unit: rows[0].unit,
+        description: getDescription(rows[0].test_key, lang),
+      }
     : null;
   res.json({ meta, points });
 });

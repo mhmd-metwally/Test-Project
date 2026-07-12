@@ -141,13 +141,17 @@ async function viewDashboard(view) {
   }
   const c = data.counters;
   const outOfRange = (c.high || 0) + (c.low || 0);
+  const abnormalOnly = State.abnormalOnly;
 
   let cats = '';
   const catNames = Object.keys(data.categories).sort();
   for (const cat of catNames) {
-    const items = data.categories[cat].map(cardForTest).join('');
-    cats += `<section class="cat"><h3>${esc(cat)}</h3><div class="grid">${items}</div></section>`;
+    let items = data.categories[cat];
+    if (abnormalOnly) items = items.filter((x) => x.status === 'high' || x.status === 'low');
+    if (items.length === 0) continue;
+    cats += `<section class="cat"><h3>${esc(cat)}</h3><div class="grid">${items.map(cardForTest).join('')}</div></section>`;
   }
+  if (abnormalOnly && cats === '') cats = `<div class="card muted">${esc(t('no_abnormal_now'))}</div>`;
 
   view.innerHTML = `
     <div class="page-head">
@@ -159,11 +163,41 @@ async function viewDashboard(view) {
       ${stat(t('high'), c.high || 0, 'high')}
       ${stat(t('low'), c.low || 0, 'low')}
     </div>
+    ${renderInsights(data.insights)}
+    <div class="dash-toolbar">
+      <button class="ghost ${abnormalOnly ? 'active' : ''}" id="filterBtn">
+        ${esc(abnormalOnly ? t('filter_all') : t('filter_abnormal'))}
+      </button>
+    </div>
     ${cats}
   `;
-  view.querySelectorAll('[data-test-card]').forEach((el) => {
+  $('#filterBtn').onclick = () => { State.abnormalOnly = !State.abnormalOnly; render(); };
+  view.querySelectorAll('[data-test-card], .ins-chip').forEach((el) => {
     el.onclick = () => openTrend(el.dataset.key || null, el.dataset.name);
   });
+}
+
+function renderInsights(ins) {
+  if (!ins) return '';
+  const chip = (x) => `<button class="ins-chip ins-${x.status || 'flat'}" data-key="${esc(x.test_key || '')}" data-name="${esc(x.test_name)}">
+      ${esc(x.test_name)} <b>${esc(x.value)}${x.unit ? ' ' + esc(x.unit) : ''}</b></button>`;
+  const chipTrend = (x, cls) => `<button class="ins-chip ${cls}" data-key="${esc(x.test_key || '')}" data-name="${esc(x.test_name)}">
+      ${esc(x.test_name)} <b>${x.delta > 0 ? '▲' : '▼'} ${esc(Math.abs(x.delta))}</b></button>`;
+  const blocks = [];
+  if (ins.danger && ins.danger.length) {
+    blocks.push(`<div class="ins-block ins-danger-block"><div class="ins-title">🚨 ${esc(t('danger_alert'))}</div><div class="ins-row">${ins.danger.map(chip).join('')}</div></div>`);
+  }
+  if (ins.attention && ins.attention.length) {
+    blocks.push(`<div class="ins-block"><div class="ins-title">⚠️ ${esc(t('needs_attention'))}</div><div class="ins-row">${ins.attention.map(chip).join('')}</div></div>`);
+  }
+  if (ins.improved && ins.improved.length) {
+    blocks.push(`<div class="ins-block"><div class="ins-title">${esc(t('improved_list'))}</div><div class="ins-row">${ins.improved.map((x) => chipTrend(x, 'ins-improved')).join('')}</div></div>`);
+  }
+  if (ins.worsened && ins.worsened.length) {
+    blocks.push(`<div class="ins-block"><div class="ins-title">${esc(t('worsened_list'))}</div><div class="ins-row">${ins.worsened.map((x) => chipTrend(x, 'ins-worsened')).join('')}</div></div>`);
+  }
+  const body = blocks.length ? blocks.join('') : `<div class="ins-allgood">${esc(t('all_normal'))}</div>`;
+  return `<div class="card insights"><h3>💡 ${esc(t('insights_title'))}</h3>${body}</div>`;
 }
 
 function stat(label, value, tone) {
@@ -213,7 +247,6 @@ async function viewImport(view) {
       <div>${esc(t('drop_here'))}</div>
       <input type="file" id="fileInput" accept="application/pdf" hidden>
     </div>
-    <div class="dz-or"><button class="ghost" id="manualBtn">${esc(t('manual_entry'))}</button></div>
     <div id="reviewArea"></div>
   `;
   const dz = $('#dropzone');
@@ -225,10 +258,6 @@ async function viewImport(view) {
   dz.ondrop = (e) => {
     e.preventDefault(); dz.classList.remove('drag');
     if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-  };
-  $('#manualBtn').onclick = () => {
-    State.parsed = { filename: null, reportDate: today(), results: [], rawText: '' };
-    renderReview();
   };
 }
 
@@ -247,50 +276,55 @@ async function handleFile(file) {
 function renderReview() {
   const p = State.parsed;
   const area = $('#reviewArea');
+  const included = p.results.filter((r) => !r.excluded).length;
   const rowsHtml = p.results.map((r, i) => reviewRow(r, i)).join('');
   area.innerHTML = `
     <div class="card review">
       <h3>${esc(t('review_title'))}</h3>
-      <p class="muted">${esc(t('review_desc'))}</p>
+      <p class="muted">${esc(t('review_readonly'))}</p>
       ${p.results.length === 0 ? `<p class="muted">${esc(t('nothing_found'))}</p>` : ''}
       <div class="meta-grid">
         <label>${esc(t('report_date'))}<input type="date" id="reportDate" value="${esc(p.reportDate || today())}"></label>
-        <label>${esc(t('lab_name'))}<input type="text" id="labName" value=""></label>
+        <label>${esc(t('detected_lab'))}<input type="text" id="labName" value="${esc(p.labName || '')}"></label>
         <label>${esc(t('note'))}<input type="text" id="note" value=""></label>
       </div>
       <div class="table-wrap">
-        <table class="rev-table">
+        <table class="rev-table readonly">
           <thead><tr>
             <th>${esc(t('col_test'))}</th><th>${esc(t('col_value'))}</th><th>${esc(t('col_unit'))}</th>
-            <th>${esc(t('col_ref_low'))}</th><th>${esc(t('col_ref_high'))}</th><th></th>
+            <th>${esc(t('col_ref'))}</th><th></th>
           </tr></thead>
           <tbody id="revBody">${rowsHtml}</tbody>
         </table>
       </div>
       <div class="review-actions">
-        <button class="ghost" id="addRow">+ ${esc(t('add_row'))}</button>
+        <span class="muted" id="incCount">${included} ${esc(t('included_count'))}</span>
         <button class="primary" id="saveReport">${esc(t('save_report'))}</button>
       </div>
       <div id="saveMsg"></div>
     </div>
   `;
-  $('#addRow').onclick = () => {
-    p.results.push({ test_key: null, test_name: '', value: '', unit: '', refLow: '', refHigh: '', category: 'Other' });
-    renderReview();
-  };
   $('#saveReport').onclick = saveReport;
   bindRowEvents();
 }
 
+function refText(r) {
+  if (r.refLow != null && r.refHigh != null) return `${r.refLow} – ${r.refHigh}`;
+  if (r.refText) return r.refText;
+  if (r.refHigh != null) return `≤ ${r.refHigh}`;
+  if (r.refLow != null) return `≥ ${r.refLow}`;
+  return '—';
+}
+
 function reviewRow(r, i) {
+  const name = r.name || r.test_name || '';
   return `
-    <tr data-row="${i}">
-      <td><input class="r-name" value="${esc(r.name || r.test_name || '')}"></td>
-      <td><input class="r-value" type="number" step="any" value="${esc(r.value)}"></td>
-      <td><input class="r-unit" value="${esc(r.unit || '')}"></td>
-      <td><input class="r-low" type="number" step="any" value="${esc(r.refLow != null ? r.refLow : '')}"></td>
-      <td><input class="r-high" type="number" step="any" value="${esc(r.refHigh != null ? r.refHigh : '')}"></td>
-      <td><button class="del-row" title="${esc(t('col_del'))}">✕</button></td>
+    <tr data-row="${i}" class="${r.excluded ? 'row-excluded' : ''}">
+      <td>${esc(name)}</td>
+      <td class="rv-num">${esc(r.value)}</td>
+      <td>${esc(r.unit || '')}</td>
+      <td class="muted">${esc(refText(r))}</td>
+      <td><button class="del-row" title="${esc(r.excluded ? t('restore') : t('exclude'))}">${r.excluded ? '↩' : '✕'}</button></td>
     </tr>`;
 }
 
@@ -298,7 +332,8 @@ function bindRowEvents() {
   $('#revBody').querySelectorAll('.del-row').forEach((btn) => {
     btn.onclick = () => {
       const idx = Number(btn.closest('tr').dataset.row);
-      State.parsed.results.splice(idx, 1);
+      const row = State.parsed.results[idx];
+      row.excluded = !row.excluded;
       renderReview();
     };
   });
@@ -306,22 +341,19 @@ function bindRowEvents() {
 
 async function saveReport() {
   const p = State.parsed;
-  const body = $('#revBody');
-  const results = [];
-  body.querySelectorAll('tr').forEach((tr) => {
-    const i = Number(tr.dataset.row);
-    const orig = p.results[i] || {};
-    results.push({
-      test_key: orig.key || orig.test_key || null,
-      test_name: $('.r-name', tr).value.trim(),
-      category: orig.category || 'Other',
-      value: $('.r-value', tr).value,
-      unit: $('.r-unit', tr).value.trim(),
-      ref_low: $('.r-low', tr).value,
-      ref_high: $('.r-high', tr).value,
-      ref_text: orig.refText || null,
-    });
-  });
+  // Values are taken exactly as parsed (never edited); only excluded rows drop.
+  const results = p.results
+    .filter((r) => !r.excluded)
+    .map((r) => ({
+      test_key: r.key || r.test_key || null,
+      test_name: (r.name || r.test_name || '').trim(),
+      category: r.category || 'Other',
+      value: r.value,
+      unit: r.unit || '',
+      ref_low: r.refLow != null ? r.refLow : null,
+      ref_high: r.refHigh != null ? r.refHigh : null,
+      ref_text: r.refText || null,
+    }));
   const payload = {
     report_date: $('#reportDate').value,
     lab_name: $('#labName').value.trim(),
@@ -370,7 +402,7 @@ async function viewTests(view) {
 async function openTrend(key, name) {
   const view = app();
   view.innerHTML = `<div class="loading">${esc(t('loading'))}</div>`;
-  const q = key ? { key } : { name };
+  const q = key ? { key, lang: State.lang } : { name, lang: State.lang };
   const data = await api.series(q);
   const meta = data.meta || { test_name: name, unit: '' };
   const pts = data.points;
@@ -386,22 +418,33 @@ async function openTrend(key, name) {
       <td><span class="${statusClass(p.status)}">${esc(statusLabel(p.status))}</span></td>
     </tr>`).join('');
 
+  const descHtml = meta.description
+    ? `<div class="card about"><h3>ℹ️ ${esc(t('about_test'))}</h3><p>${esc(meta.description)}</p></div>`
+    : '';
+
   view.innerHTML = `
-    <button class="ghost back" id="backBtn">${esc(t('back'))}</button>
-    <div class="page-head">
-      <h2>${esc(t('trend_of'))} ${esc(meta.test_name)}</h2>
-      <p class="muted">${esc(meta.category || '')} · ${pts.length} ${esc(t('measurements'))}
-        · ${esc(t('change_since_first'))}: <strong class="${change > 0 ? 'up' : change < 0 ? 'down' : ''}">${change > 0 ? '+' : ''}${change} ${esc(meta.unit || '')}</strong></p>
+    <div class="trend-head no-print">
+      <button class="ghost back" id="backBtn">${esc(t('back'))}</button>
+      <button class="ghost" id="printBtn">${esc(t('print'))}</button>
     </div>
-    <div class="card"><div id="chart" class="chart-box"></div></div>
-    <div class="card table-wrap">
-      <table class="data-table">
-        <thead><tr><th>${esc(t('date'))}</th><th>${esc(t('value'))}</th><th>${esc(t('status'))}</th></tr></thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>
+    <div id="printArea">
+      <div class="page-head">
+        <h2>${esc(t('trend_of'))} ${esc(meta.test_name)}</h2>
+        <p class="muted">${esc(meta.category || '')} · ${pts.length} ${esc(t('measurements'))}
+          · ${esc(t('change_since_first'))}: <strong class="${change > 0 ? 'up' : change < 0 ? 'down' : ''}">${change > 0 ? '+' : ''}${change} ${esc(meta.unit || '')}</strong></p>
+      </div>
+      ${descHtml}
+      <div class="card"><div id="chart" class="chart-box"></div></div>
+      <div class="card table-wrap">
+        <table class="data-table">
+          <thead><tr><th>${esc(t('date'))}</th><th>${esc(t('value'))}</th><th>${esc(t('status'))}</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
     </div>
   `;
   $('#backBtn').onclick = () => go(State.route === 'dashboard' ? 'dashboard' : 'tests');
+  $('#printBtn').onclick = () => window.print();
   window.renderLineChart($('#chart'), { points: pts, refLow, refHigh, unit: meta.unit });
   window.addEventListener('resize', () => {
     if ($('#chart')) window.renderLineChart($('#chart'), { points: pts, refLow, refHigh, unit: meta.unit });

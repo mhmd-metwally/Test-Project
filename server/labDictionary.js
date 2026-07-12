@@ -163,4 +163,61 @@ function getByKey(key) {
   return BY_KEY.get(key) || null;
 }
 
-module.exports = { TESTS, matchTest, getByKey };
+// Plain-language explanation for each test, shown on the detail screen.
+// Keep these short, general, and non-diagnostic.
+const DESCRIPTIONS = {
+  hemoglobin: { en: 'The protein in red blood cells that carries oxygen. Low levels can mean anemia; very high can mean dehydration or other conditions.', ar: 'البروتين اللي في كرات الدم الحمرا وبينقل الأكسجين. نقصه ممكن يعني أنيميا، وارتفاعه الشديد ممكن يكون جفاف أو أسباب تانية.' },
+  hematocrit: { en: 'The percentage of your blood made up of red blood cells. Tracks closely with hemoglobin.', ar: 'نسبة كرات الدم الحمرا في الدم. بتتغير مع الهيموجلوبين.' },
+  wbc: { en: 'White blood cells fight infection. High can signal infection or inflammation; low can mean a weakened immune response.', ar: 'كرات الدم البيضا بتحارب العدوى. ارتفاعها ممكن يعني عدوى أو التهاب، ونقصها ممكن يعني مناعة ضعيفة.' },
+  rbc: { en: 'The number of red blood cells that carry oxygen around the body.', ar: 'عدد كرات الدم الحمرا اللي بتنقل الأكسجين في الجسم.' },
+  platelets: { en: 'Cell fragments that help blood clot. Low levels raise bleeding risk; high levels can raise clotting risk.', ar: 'أجزاء خلايا بتساعد الدم يتجلط. نقصها بيزود خطر النزيف، وزيادتها ممكن تزود خطر الجلطات.' },
+  mcv: { en: 'Average size of your red blood cells. Helps classify the type of anemia.', ar: 'متوسط حجم كرات الدم الحمرا. بيساعد في تحديد نوع الأنيميا.' },
+  mch: { en: 'Average amount of hemoglobin per red blood cell.', ar: 'متوسط كمية الهيموجلوبين في كل كرة دم حمرا.' },
+  mchc: { en: 'Concentration of hemoglobin inside red blood cells.', ar: 'تركيز الهيموجلوبين جوه كرات الدم الحمرا.' },
+  glucose_fasting: { en: 'Blood sugar after not eating for 8+ hours. A key screen for diabetes and prediabetes.', ar: 'مستوى السكر في الدم بعد صيام 8 ساعات أو أكتر. من أهم فحوصات السكري وما قبل السكري.' },
+  glucose_pp: { en: 'Blood sugar measured about 2 hours after a meal.', ar: 'مستوى السكر بعد الأكل بساعتين تقريبًا.' },
+  hba1c: { en: 'Your average blood sugar over the past ~3 months. The main test for long-term diabetes control.', ar: 'متوسط السكر خلال آخر ٣ شهور تقريبًا. الفحص الأساسي لمتابعة التحكم في السكري على المدى الطويل.' },
+  cholesterol_total: { en: 'Total cholesterol in your blood. Part of assessing heart-disease risk.', ar: 'إجمالي الكوليسترول في الدم. جزء من تقييم خطر أمراض القلب.' },
+  hdl: { en: '“Good” cholesterol — higher is generally better; it helps remove other cholesterol.', ar: 'الكوليسترول «النافع» — كل ما زاد كل ما كان أحسن؛ بيساعد في التخلص من الكوليسترول الضار.' },
+  ldl: { en: '“Bad” cholesterol — high levels can build up in arteries and raise heart risk.', ar: 'الكوليسترول «الضار» — ارتفاعه ممكن يترسب في الشرايين ويزود خطر القلب.' },
+  triglycerides: { en: 'A type of fat in the blood. High levels are linked to heart risk.', ar: 'نوع من الدهون في الدم. ارتفاعه مرتبط بخطر أمراض القلب.' },
+  vldl: { en: 'A cholesterol type that mostly carries triglycerides.', ar: 'نوع من الكوليسترول بينقل الدهون الثلاثية غالبًا.' },
+  creatinine: { en: 'A waste product filtered by the kidneys. High levels can indicate reduced kidney function.', ar: 'فضلات بتتخلص منها الكلى. ارتفاعه ممكن يدل على ضعف وظائف الكلى.' },
+  urea: { en: 'A waste product from protein breakdown, cleared by the kidneys.', ar: 'فضلات ناتجة من تكسير البروتين، الكلى بتتخلص منها.' },
+  bun: { en: 'Blood urea nitrogen — another marker of kidney function and hydration.', ar: 'نيتروجين اليوريا في الدم — مؤشر تاني لوظائف الكلى والترطيب.' },
+  uric_acid: { en: 'A waste product; high levels can cause gout or kidney stones.', ar: 'فضلات؛ ارتفاعها ممكن يسبب النقرس أو حصوات الكلى.' },
+  egfr: { en: 'An estimate of how well your kidneys filter blood. Lower means reduced function.', ar: 'تقدير لكفاءة الكلى في تنقية الدم. القيمة الأقل تعني وظيفة أضعف.' },
+  alt: { en: 'A liver enzyme. High levels can indicate liver stress or damage.', ar: 'إنزيم من الكبد. ارتفاعه ممكن يدل على إجهاد أو ضرر في الكبد.' },
+  ast: { en: 'A liver (and muscle) enzyme; often checked alongside ALT.', ar: 'إنزيم من الكبد (والعضلات)؛ بيتقاس غالبًا مع ALT.' },
+  alp: { en: 'An enzyme related to the liver and bones.', ar: 'إنزيم مرتبط بالكبد والعظام.' },
+  bilirubin_total: { en: 'A yellow pigment from red-cell breakdown; high levels can cause jaundice.', ar: 'صبغة صفرا ناتجة من تكسير كرات الدم؛ ارتفاعها ممكن يسبب الصفرا (اليرقان).' },
+  bilirubin_direct: { en: 'The processed form of bilirubin handled by the liver.', ar: 'الصورة المعالَجة من البيليروبين اللي بيتعامل معاها الكبد.' },
+  albumin: { en: 'The main protein made by the liver; reflects liver and nutrition status.', ar: 'البروتين الأساسي اللي بيصنعه الكبد؛ بيعكس حالة الكبد والتغذية.' },
+  total_protein: { en: 'The total of all proteins in your blood.', ar: 'إجمالي البروتينات في الدم.' },
+  ggt: { en: 'A liver enzyme sensitive to bile-duct issues and alcohol.', ar: 'إنزيم من الكبد حساس لمشاكل القنوات المرارية والكحول.' },
+  tsh: { en: 'The hormone that controls your thyroid. High can mean an underactive thyroid; low an overactive one.', ar: 'الهرمون اللي بيتحكم في الغدة الدرقية. ارتفاعه ممكن يعني خمول، ونقصه نشاط زائد.' },
+  t3: { en: 'A thyroid hormone that regulates metabolism.', ar: 'هرمون درقي بينظم التمثيل الغذائي.' },
+  t4: { en: 'The main thyroid hormone; works with TSH and T3.', ar: 'الهرمون الدرقي الأساسي؛ بيشتغل مع TSH و T3.' },
+  ft3: { en: 'The free, active form of T3.', ar: 'الصورة الحرة النشطة من T3.' },
+  ft4: { en: 'The free, active form of T4.', ar: 'الصورة الحرة النشطة من T4.' },
+  vitamin_d: { en: 'Supports bones and immunity. Deficiency is very common.', ar: 'بيدعم العظام والمناعة. نقصه شائع جدًا.' },
+  vitamin_b12: { en: 'Needed for nerves and red blood cells. Low levels can cause fatigue and anemia.', ar: 'مهم للأعصاب وكرات الدم الحمرا. نقصه ممكن يسبب إرهاق وأنيميا.' },
+  ferritin: { en: 'Reflects your body’s iron stores. Low means iron deficiency.', ar: 'بيعكس مخزون الحديد في الجسم. نقصه يعني نقص حديد.' },
+  iron: { en: 'The amount of iron circulating in your blood.', ar: 'كمية الحديد الموجودة في الدم.' },
+  calcium: { en: 'Important for bones, muscles, and nerves.', ar: 'مهم للعظام والعضلات والأعصاب.' },
+  sodium: { en: 'An electrolyte that controls fluid balance.', ar: 'من الأملاح اللي بتتحكم في توازن السوائل.' },
+  potassium: { en: 'An electrolyte important for the heart and muscles.', ar: 'من الأملاح المهمة للقلب والعضلات.' },
+  chloride: { en: 'An electrolyte that helps maintain fluid and acid balance.', ar: 'من الأملاح اللي بتساعد في توازن السوائل والحموضة.' },
+  magnesium: { en: 'A mineral important for muscles, nerves, and energy.', ar: 'معدن مهم للعضلات والأعصاب والطاقة.' },
+  phosphorus: { en: 'A mineral that works with calcium for bone health.', ar: 'معدن بيشتغل مع الكالسيوم لصحة العظام.' },
+  crp: { en: 'A marker of inflammation in the body. High levels can signal infection or inflammation.', ar: 'مؤشر للالتهاب في الجسم. ارتفاعه ممكن يدل على عدوى أو التهاب.' },
+  esr: { en: 'Another general marker of inflammation.', ar: 'مؤشر عام تاني للالتهاب.' },
+};
+
+function getDescription(key, lang) {
+  const d = DESCRIPTIONS[key];
+  if (!d) return null;
+  return lang === 'en' ? d.en : d.ar;
+}
+
+module.exports = { TESTS, matchTest, getByKey, getDescription, DESCRIPTIONS };

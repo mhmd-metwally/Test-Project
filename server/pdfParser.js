@@ -109,9 +109,48 @@ function parseText(text) {
     .filter((l) => l.length > 0);
 
   const reportDate = findReportDate(lines);
-  const results = extractResults(lines);
+  const labName = findLabName(lines);
+  // Blank out dates/times before extracting results so a date can never be
+  // mistaken for a test value. Length-preserving so column alignment survives.
+  const scrubbed = lines.map(stripDatesAndTimes);
+  const results = extractResults(scrubbed);
 
-  return { text, reportDate, results };
+  return { text, reportDate, labName, results };
+}
+
+// Replace any date/time substring with an equal-length run of spaces.
+function stripDatesAndTimes(line) {
+  const blank = (m) => ' '.repeat(m.length);
+  return line
+    .replace(/\b\d{1,4}[\/.\-]\d{1,2}[\/.\-]\d{2,4}\b/g, blank)
+    .replace(/\b\d{1,2}\s*[-\s]\s*[A-Za-z]{3,9}\s*[-\s,]?\s*\d{4}\b/g, blank)
+    .replace(/\b[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4}\b/g, blank)
+    .replace(/\b\d{1,2}:\d{2}(?::\d{2})?\s*(?:am|pm)?\b/gi, blank);
+}
+
+// Words that identify a laboratory/clinic name.
+const LAB_KEYWORDS = /(laborator|\blabs?\b|diagnostic|clinic|hospital|medical|healthcare|health care|pathology|centre|center|معمل|مختبر|مستشفى|مركز|معامل)/i;
+// Field labels that appear near the top but are NOT the lab name.
+const FIELD_LABEL = /^(patient|name|age|sex|gender|dob|date|id|mr no|mrn|ref|referred|doctor|phone|tel|fax|email|address|sample|specimen|report|page|www|http)/i;
+
+function findLabName(lines) {
+  const top = lines.slice(0, 12);
+  // 1) a line that clearly names a lab/clinic
+  for (const line of top) {
+    if (FIELD_LABEL.test(line)) continue;
+    if (LAB_KEYWORDS.test(line) && line.length <= 70) return cleanLabName(line);
+  }
+  // 2) otherwise the first non-field, mostly-text line near the top
+  for (const line of top) {
+    if (FIELD_LABEL.test(line)) continue;
+    const letters = (line.match(/[A-Za-z؀-ۿ]/g) || []).length;
+    if (letters >= 3 && line.length <= 60 && !/\d{2,}/.test(line)) return cleanLabName(line);
+  }
+  return null;
+}
+
+function cleanLabName(s) {
+  return s.replace(/[|•*_]+/g, ' ').replace(/\s{2,}/g, ' ').replace(/[\s:,-]+$/, '').trim();
 }
 
 /* -------------------------------------------------------------------------- */
